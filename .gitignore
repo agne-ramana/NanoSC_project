@@ -3,3 +3,4 @@ _build/
 .env
 *.pyc
 data/
+*.egg-info
