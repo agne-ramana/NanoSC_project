@@ -1,0 +1,21 @@
+[project]
+name = "mnist-digit-recogniser"
+version = "0.1.0"
+description = "A machine learning project to recognise hand drawn digits"
+authors = [
+  { name = "Agne Ramanaviciute", email = "ar2301@cam.ac.uk" },
+  { name = "Caitriona Hastings", email = "ch2101@cam.ac.uk" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+  "numpy",
+  "scipy",
+  "pandas",
+  "matplotlib",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
