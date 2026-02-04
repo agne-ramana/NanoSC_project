@@ -7,7 +7,7 @@ authors = [
   { name = "Caitriona Hastings", email = "ch2101@cam.ac.uk" }
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 
 dependencies = [
   "numpy",
@@ -16,9 +16,12 @@ dependencies = [
   "matplotlib",
   "torch",
   "torchvision",
-  "torchsummary"
+  "torchsummary",
+  "Pillow"
 ]
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+[tool.setuptools]
+packages = []
