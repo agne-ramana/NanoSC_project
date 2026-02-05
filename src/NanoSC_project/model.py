@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class TwoLayerCNN(nn.Module):
     def __init__(self):
         super(TwoLayerCNN, self).__init__()
