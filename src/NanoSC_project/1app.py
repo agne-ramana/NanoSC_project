@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import numpy as np
-from model import TwoLayerCNN
+from NanoSC_project import TwoLayerCNN
         
 # --- 2. The Application ---
 class App:
