@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class TwoLayerCNN(nn.Module):
     def __init__(self):
         super(TwoLayerCNN, self).__init__()
@@ -23,7 +24,7 @@ class TwoLayerCNN(nn.Module):
 
         # Layer 4: Fully Connected
         self.out = nn.Linear(64, 10) # Output 10 values
-        self.sigmoid = nn.Sigmoid() # Squash to 0-1
+        self.softmax = nn.Softmax() # Squash to 0-1
         
     def forward(self, x):
         # Layer 1
@@ -39,6 +40,6 @@ class TwoLayerCNN(nn.Module):
         # Dense Layers
         x = self.relu(self.fc1(x))
         x = self.drop(x)
-        x = self.sigmoid(self.out(x))
+        x = self.softmax(self.out(x))
         return x
 

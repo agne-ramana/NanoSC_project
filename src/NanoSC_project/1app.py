@@ -4,49 +4,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import numpy as np
-
-class BinaryCNN(nn.Module):
-    def __init__(self):
-        super(BinaryCNN, self).__init__()
-
-        # Activation, normalisation & dropout functions
-        self.relu = nn.ReLU() 
-        self.bnorm32 = nn.BatchNorm2d(num_features=32)
-        self.bnorm64 = nn.BatchNorm2d(num_features=64)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.drop = nn.Dropout(p=0.4)
-
-        # Layer 1: Conv (1 input -> 32 output)
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding='same')
-
-        # Layer 2: Conv (32 -> 64)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding='same')
-        
-        # Layer 3: Fully Connected
-        self.fc1 = nn.Linear(12544, 64)
-
-        # Layer 4: Output
-        self.out = nn.Linear(64, 10) 
-        self.sigmoid = nn.Sigmoid() 
-        
-    def forward(self, x):
-        # Layer 1
-        x = self.relu(self.conv1(x))
-        
-        # Layer 2
-        x = self.pool(self.relu(self.conv2(x)))
-        
-        # Dropout
-        x = self.drop(x)
-        
-        # Flatten: (Batch, 64, 14, 14) -> (Batch, 12544)
-        x = x.view(x.size(0), -1) 
-        
-        # Dense Layers
-        x = self.relu(self.fc1(x))
-        x = self.drop(x)
-        x = self.sigmoid(self.out(x))
-        return x
+from NanoSC_project import TwoLayerCNN
         
 # --- 2. The Application ---
 class App:
@@ -99,13 +57,13 @@ class App:
     def load_model(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.model = BinaryCNN().to(self.device)
+        self.model = TwoLayerCNN().to(self.device)
         
         try:
             # Load the specific weights
             self.model.load_state_dict(torch.load("models/model1.pt", map_location=self.device))
             self.model.eval()
-            print("BinaryCNN Model loaded successfully.")
+            print("TwoLayerCNN Model loaded successfully.")
         except Exception as e:
             print(f"Error loading model: {e}")
             self.result_label.config(text="Error loading model!", fg="red")
