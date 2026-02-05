@@ -24,7 +24,7 @@ class TwoLayerCNN(nn.Module):
 
         # Layer 4: Fully Connected
         self.out = nn.Linear(64, 10) # Output 10 values
-        self.softmax = nn.Softmax() # Squash to 0-1
+        self.softmax = nn.Softmax(dim=1) # Squash to 0-1
         
     def forward(self, x):
         # Layer 1

@@ -80,4 +80,4 @@ for epoch in range(epochs):
 print("Training Complete!")
 
 
-torch.save(model.state_dict(), '../../models/model1.pt')
+torch.save(model.state_dict(), '../../models/model2.pt')

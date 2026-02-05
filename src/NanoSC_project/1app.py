@@ -55,13 +55,14 @@ class App:
         self.load_model()
 
     def load_model(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         
         self.model = TwoLayerCNN().to(self.device)
         
         try:
             # Load the specific weights
-            self.model.load_state_dict(torch.load("models/model1.pt", map_location=self.device))
+            self.model.load_state_dict(torch.load("../../models/model2.pt", map_location=self.device))
             self.model.eval()
             print("TwoLayerCNN Model loaded successfully.")
         except Exception as e:
