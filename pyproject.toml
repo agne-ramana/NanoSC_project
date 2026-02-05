@@ -1,5 +1,5 @@
 [project]
-name = "mnist-digit-recogniser"
+name = "NanoSC_project"
 version = "0.1.0"
 description = "A machine learning project to recognise hand drawn digits"
 authors = [
