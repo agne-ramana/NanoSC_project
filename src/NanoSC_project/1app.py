@@ -4,24 +4,25 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import numpy as np
-from NanoSC_project import TwoLayerCNN
+import cv2
+from model import TwoLayerCNN
         
-# --- 2. The Application ---
 class App:
     def __init__(self, root):
         self.root = root
         self.root.title("MNIST Digit Draw")
-        self.root.geometry("400x500")
+        self.root.geometry("1400x500")
 
-        self.logical_size = 28
+        self.logical_height = 28
+        self.logical_width = 140
         self.scale_factor = 10
-        self.canvas_width = self.logical_size * self.scale_factor
-        self.canvas_height = self.logical_size * self.scale_factor
+        self.canvas_width = self.logical_width * self.scale_factor
+        self.canvas_height = self.logical_height * self.scale_factor
 
         # Canvas for drawing
         self.canvas = tk.Canvas(root, width=self.canvas_width, height=self.canvas_height, bg="white", cursor="cross")
         self.canvas.pack(pady=20)
-        
+
         # Bindings for smooth drawing
         self.canvas.bind("<Button-1>", self.start_draw)
         self.canvas.bind("<B1-Motion>", self.draw)
@@ -33,8 +34,9 @@ class App:
         # Keep track of set pixels to avoid drawing overlap on canvas
         self.drawn_pixels = set()
 
-        # Image object to draw on (in memory) - keep it at 28x28
-        self.image = Image.new("L", (self.logical_size, self.logical_size), 255)
+        # Image object to draw on (in memory)
+        self.image = Image.new("L", (self.logical_width, self.logical_height), 255)
+
         self.draw_handle = ImageDraw.Draw(self.image)
 
         # Buttons
@@ -61,7 +63,6 @@ class App:
         self.model = TwoLayerCNN().to(self.device)
         
         try:
-            # Load the specific weights
             self.model.load_state_dict(torch.load("../../models/model2.pt", map_location=self.device))
             self.model.eval()
             print("TwoLayerCNN Model loaded successfully.")
@@ -99,7 +100,8 @@ class App:
             self.paint_pixel(grid_x + 1, grid_y + 1)
 
     def paint_pixel(self, gx, gy):
-        if 0 <= gx < self.logical_size and 0 <= gy < self.logical_size:
+        if 0 <= gx < self.logical_width and 0 <= gy < self.logical_height:
+
             if (gx, gy) not in self.drawn_pixels:
                 self.drawn_pixels.add((gx, gy))
                 x1 = gx * self.scale_factor
@@ -112,33 +114,105 @@ class App:
     def clear_canvas(self):
         self.canvas.delete("all")
         self.drawn_pixels.clear()
-        self.image = Image.new("L", (self.logical_size, self.logical_size), 255)
-        self.result_label.config(text="Draw a digit...", fg="black")
+        self.image = Image.new("L", (self.logical_width, self.logical_height), 255)
+        self.result_label.config(text="Draw digits...", fg="black")
+
 
     def predict(self):
-        img_processed = self.standardize_image(self.image)
+        # Convert PIL image to numpy array for OpenCV
+        img_np = np.array(self.image)
         
-        transform = transforms.Compose([
-            transforms.ToTensor(), # Converts 0-255 -> 0.0-1.0
-        ])
+        # Invert image
+        img_inverted = 255 - img_np
         
-        img_tensor = transform(img_processed).unsqueeze(0).to(self.device)
+        # Threshold to get binary image
+        _, thresh = cv2.threshold(img_inverted, 128, 255, cv2.THRESH_BINARY)
         
-        with torch.no_grad():
-            output = self.model(img_tensor)
+        # Find contours
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            self.result_label.config(text="Draw something first!", fg="red")
+            return
 
-            probs = output 
+        # Sort contours from left to right
+        bounding_boxes = [cv2.boundingRect(c) for c in contours]
+        # Filter small noise (optional, e.g. single dots)
+        contours_boxes = [(c, b) for c, b in zip(contours, bounding_boxes) if b[2] > 2 and b[3] > 2]
+        
+        if not contours_boxes:
+            self.result_label.config(text="Draw clearly!", fg="red")
+            return
             
-            top_p, top_class = probs.topk(1, dim=1)
+        # Sort by x coordinate
+        contours_boxes.sort(key=lambda x: x[1][0])
+        
+        results = []
+        
+        for c, bbox in contours_boxes:
+            x, y, w, h = bbox
+            # Crop the digit from the original PIL image
+            digit_crop = self.image.crop((x, y, x + w, y + h))
             
-            # This calculates the percentage (e.g., 0.95 -> 95.0%)
-            certainty = top_p.item() * 100 
-            digit = top_class.item()
+            # Process the crop to be 28x28 centered
+            img_processed = self.process_digit_segment(digit_crop)
             
-        self.result_label.config(text=f"Prediction: {digit}\nCertainty: {certainty:.2f}%", fg="blue")
+            # Predict
+            transform = transforms.Compose([transforms.ToTensor()])
+            img_tensor = transform(img_processed).unsqueeze(0).to(self.device)
+            
+            with torch.no_grad():
+                output = self.model(img_tensor)
+                probs = output
+                top_p, top_class = probs.topk(1, dim=1)
+                certainty = top_p.item() * 100
+                digit = top_class.item()
+                results.append((digit, certainty))
+        
+        # Format output
+        result_text = "Predictions:\n" + "\n".join([f"Digit: {d} ({c:.1f}%)" for d, c in results])
+        self.result_label.config(text=result_text, fg="blue")
+
+    def process_digit_segment(self, digit_img):
+        # Invert to have white digit on black background
+        digit_img = ImageOps.invert(digit_img)
+        
+        w, h = digit_img.size
+        # Resize to fit in 20x20 box (preserve aspect ratio)
+        max_dim = max(w, h)
+        if max_dim == 0: return Image.new('L', (28, 28), 0)
+        
+        scale = 20.0 / max_dim
+        new_w, new_h = int(w * scale), int(h * scale)
+        resample_method = Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS
+        digit_resized = digit_img.resize((new_w, new_h), resample_method)
+        
+        # Create 28x28 black canvas
+        final_img = Image.new('L', (28, 28), 0)
+        
+        # Center using Center of Mass
+        digit_arr = np.array(digit_resized)
+        total_mass = np.sum(digit_arr)
+        
+        if total_mass == 0:
+            # Fallback to geometric center if mass is 0
+            paste_x = (28 - new_w) // 2
+            paste_y = (28 - new_h) // 2
+        else:
+            h_r, w_r = digit_arr.shape
+            y_indices, x_indices = np.indices((h_r, w_r))
+            cy = np.sum(y_indices * digit_arr) / total_mass
+            cx = np.sum(x_indices * digit_arr) / total_mass
+            
+            target_center = 13.5
+            paste_x = int(round(target_center - cx))
+            paste_y = int(round(target_center - cy))
+            
+        final_img.paste(digit_resized, (paste_x, paste_y))
+        return final_img
+
 
     def standardize_image(self, img):
-        # Keeps your original high-quality centering logic
         img_inverted = ImageOps.invert(img)
         bbox = img_inverted.getbbox()
         if not bbox: return img_inverted 
