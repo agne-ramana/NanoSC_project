@@ -8,8 +8,6 @@ class TwoLayerCNN(nn.Module):
 
         # Activation, normalisation & dropout functions
         self.relu = nn.ReLU()
-        self.bnorm32 = nn.BatchNorm2d(num_features=32)
-        self.bnorm64 = nn.BatchNorm2d(num_features=64)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.drop = nn.Dropout(p=0.4)
 

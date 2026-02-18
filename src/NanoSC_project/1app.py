@@ -5,7 +5,7 @@ import torch.nn as nn
 from torchvision import transforms
 import numpy as np
 import cv2
-from model import TwoLayerCNN
+from NanoSC_project import TwoLayerCNN
         
 class App:
     def __init__(self, root):
@@ -63,7 +63,7 @@ class App:
         self.model = TwoLayerCNN().to(self.device)
         
         try:
-            self.model.load_state_dict(torch.load("../../models/model2.pt", map_location=self.device))
+            self.model.load_state_dict(torch.load("../../models/model1.pt", map_location=self.device))
             self.model.eval()
             print("TwoLayerCNN Model loaded successfully.")
         except Exception as e:
